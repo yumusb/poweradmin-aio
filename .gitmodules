@@ -1,0 +1,3 @@
+[submodule "poweradmin"]
+	path = poweradmin
+	url = https://github.com/poweradmin/poweradmin.git

@@ -1,0 +1,52 @@
+services:
+  pdns:
+    build: ./pdns/
+    ports:
+      - "53:53"
+      - "53:53/udp"
+    environment:
+      - PDNSCONF_API_KEY=${API_KEY}
+      - PDNSCONF_DNSUPDATE=yes
+      - SECALLZONES_CRONJOB=yes
+      - PDNSCONF_GMYSQL_USER=${DB_USER}
+      - PDNSCONF_GMYSQL_DBNAME=${DB_NAME}
+      - PDNSCONF_GMYSQL_PASSWORD=${DB_PASS}
+      - PDNSCONF_GMYSQL_HOST=db
+    restart: always
+  db:
+    image: mariadb:lts
+    environment:
+      - MARIADB_USER=${DB_USER}
+      - MARIADB_DATABASE=${DB_NAME}
+      - MARIADB_PASSWORD=${DB_PASS}
+      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASS}
+    volumes:
+      - ./data:/var/lib/mysql
+    restart: always
+  php:
+    build: ./php/
+    volumes:
+       - ./poweradmin/:/app
+    restart: always
+    environment:
+      - MARIADB_USER=${DB_USER}
+      - MARIADB_DATABASE=${DB_NAME}
+      - MARIADB_PASSWORD=${DB_PASS}
+      - DNS_MASTER=${DNS_MASTER}
+      - DNS_NS1=${DNS_NS1}
+      - DNS_NS2=${DNS_NS2}
+      - PDNSCONF_API_KEY=${API_KEY}
+  nginx:
+    image: nginx:stable-alpine
+    restart: always
+    depends_on:
+      - php
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d
+      - ./poweradmin/:/app
+  tunnel:
+    image: cloudflare/cloudflared
+    restart: always
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
